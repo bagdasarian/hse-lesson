@@ -22,3 +22,26 @@ type Session struct {
 	ExpiresAt time.Time `db:"expires_at" json:"expiresAt"`
 	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 }
+
+// Booking — модель бронирования.
+type Booking struct {
+	ID        string    `json:"id" db:"id"`
+	UserID    string    `json:"user_id" db:"user_id"`
+	Status    string    `json:"status" db:"status"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Message — модель записи из таблицы messages (используется для /dbtest).
+type Message struct {
+	ID        int       `json:"id" db:"id"`
+	Text      string    `json:"text" db:"text"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+// BookingEvent — событие, передаваемое через Kafka между сервисами.
+type BookingEvent struct {
+	BookingID string `json:"booking_id"`
+	UserID    string `json:"user_id,omitempty"`
+	Status    string `json:"status,omitempty"`
+}

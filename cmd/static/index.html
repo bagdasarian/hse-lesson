@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Labago — Аренда жилья</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #16213e;
+      color: #fff;
+      padding: 18px 32px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    header span { color: #e94560; }
+
+    main {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #16213e;
+      border-bottom: 2px solid #e94560;
+      padding-bottom: 8px;
+      display: inline-block;
+    }
+
+    .card.wide { grid-column: 1 / -1; }
+
+    label { display: block; font-size: .85rem; color: #555; margin-bottom: 4px; margin-top: 12px; }
+    label:first-of-type { margin-top: 0; }
+
+    input[type=text], input[type=password] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: .95rem;
+      transition: border-color .2s;
+    }
+    input:focus { outline: none; border-color: #e94560; }
+
+    button {
+      margin-top: 14px;
+      width: 100%;
+      padding: 10px;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover { background: #c73652; }
+    button:disabled { background: #ccc; cursor: default; }
+
+    .msg {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: .85rem;
+      display: none;
+    }
+    .msg.ok  { background: #e6f9f0; color: #1a7a4a; display: block; }
+    .msg.err { background: #fde8ec; color: #a0192c; display: block; }
+
+    #token-display {
+      margin-top: 10px;
+      font-size: .75rem;
+      color: #888;
+      word-break: break-all;
+      background: #f7f7f7;
+      padding: 8px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    #bookings-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .booking-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #f7f8fc;
+      border-radius: 8px;
+      border-left: 4px solid #ccc;
+      font-size: .88rem;
+    }
+    .booking-item[data-status=new]        { border-color: #6c8ebf; }
+    .booking-item[data-status=processing] { border-color: #f0a500; }
+    .booking-item[data-status=done]       { border-color: #2e7d32; }
+
+    .badge {
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .badge-new        { background: #dbe9ff; color: #2457a0; }
+    .badge-processing { background: #fff3cc; color: #8a5e00; }
+    .badge-done       { background: #e8f5e9; color: #1b5e20; }
+
+    .booking-id { color: #888; font-size: .78rem; font-family: monospace; }
+
+    #auth-status {
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: .85rem;
+      color: #888;
+      padding: 6px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    #auth-status.active { color: #1a7a4a; background: #e6f9f0; }
+  </style>
+</head>
+<body>
+
+<header>Labago <span>●</span> Аренда жилья</header>
+
+<main>
+  <div id="auth-status">Вы не авторизованы</div>
+
+  <!-- Регистрация -->
+  <div class="card">
+    <h2>Регистрация</h2>
+    <label>Логин</label>
+    <input type="text" id="reg-login" placeholder="john_doe">
+    <label>Пароль</label>
+    <input type="password" id="reg-password" placeholder="••••••••">
+    <button onclick="register()">Зарегистрироваться</button>
+    <div class="msg" id="reg-msg"></div>
+  </div>
+
+  <!-- Авторизация -->
+  <div class="card">
+    <h2>Вход</h2>
+    <label>Логин</label>
+    <input type="text" id="login-login" placeholder="john_doe">
+    <label>Пароль</label>
+    <input type="password" id="login-password" placeholder="••••••••">
+    <button onclick="login()">Войти</button>
+    <div class="msg" id="login-msg"></div>
+    <div id="token-display"></div>
+  </div>
+
+  <!-- Создать бронирование -->
+  <div class="card">
+    <h2>Новое бронирование</h2>
+    <p style="font-size:.85rem;color:#888;margin-bottom:8px">Нажмите кнопку, чтобы создать заявку на бронирование.</p>
+    <button onclick="createBooking()" id="btn-create" disabled>Создать бронирование</button>
+    <div class="msg" id="create-msg"></div>
+  </div>
+
+  <!-- Мои бронирования -->
+  <div class="card wide">
+    <h2>Мои бронирования</h2>
+    <button onclick="loadBookings()" id="btn-list" disabled style="width:auto;padding:8px 20px">Обновить</button>
+    <div id="bookings-list"><p style="color:#aaa;font-size:.85rem;margin-top:12px">Список пуст</p></div>
+  </div>
+</main>
+
+<script>
+  let token = null;
+
+  function show(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  function setAuth(t, login) {
+    token = t;
+    document.getElementById('btn-create').disabled = false;
+    document.getElementById('btn-list').disabled = false;
+    const status = document.getElementById('auth-status');
+    status.textContent = `Авторизован как: ${login}`;
+    status.className = 'active';
+    const td = document.getElementById('token-display');
+    td.textContent = 'JWT: ' + t.slice(0, 40) + '…';
+    td.style.display = 'block';
+    loadBookings();
+  }
+
+  async function register() {
+    const login = document.getElementById('reg-login').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!login || !password) { show('reg-msg', 'Заполните все поля', 'err'); return; }
+
+    try {
+      const r = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password }),
+      });
+      if (r.ok) {
+        show('reg-msg', `Пользователь «${login}» зарегистрирован`, 'ok');
+      } else {
+        const text = await r.text();
+        show('reg-msg', text.trim(), 'err');
+      }
+    } catch (e) {
+      show('reg-msg', 'Ошибка сети: ' + e.message, 'err');
+    }
+  }
+
+  async function login() {
+    const login = document.getElementById('login-login').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!login || !password) { show('login-msg', 'Заполните все поля', 'err'); return; }
+
+    try {
+      const r = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setAuth(data.token, login);
+        show('login-msg', 'Вход выполнен успешно', 'ok');
+      } else {
+        const text = await r.text();
+        show('login-msg', text.trim(), 'err');
+      }
+    } catch (e) {
+      show('login-msg', 'Ошибка сети: ' + e.message, 'err');
+    }
+  }
+
+  async function createBooking() {
+    if (!token) return;
+    try {
+      const r = await fetch('/bookings/create', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (r.ok) {
+        const b = await r.json();
+        show('create-msg', `Бронирование создано: ${b.id.slice(0, 8)}…`, 'ok');
+        loadBookings();
+      } else {
+        show('create-msg', await r.text(), 'err');
+      }
+    } catch (e) {
+      show('create-msg', 'Ошибка сети: ' + e.message, 'err');
+    }
+  }
+
+  async function loadBookings() {
+    if (!token) return;
+    try {
+      const r = await fetch('/bookings/list', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      if (!r.ok) return;
+      const list = await r.json();
+      const container = document.getElementById('bookings-list');
+      if (!list || list.length === 0) {
+        container.innerHTML = '<p style="color:#aaa;font-size:.85rem;margin-top:12px">Бронирований пока нет</p>';
+        return;
+      }
+      container.innerHTML = list.map(b => `
+        <div class="booking-item" data-status="${b.status}">
+          <div>
+            <div class="booking-id">${b.id}</div>
+            <div style="margin-top:3px;font-size:.82rem;color:#777">${new Date(b.created_at).toLocaleString('ru')}</div>
+          </div>
+          <span class="badge badge-${b.status}">${b.status}</span>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error('loadBookings:', e);
+    }
+  }
+</script>
+
+</body>
+</html>
